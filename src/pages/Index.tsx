@@ -1,4 +1,17 @@
 import { useState } from "react";
+
+const USED_CODES_KEY = "wasteland_used_codes";
+
+const getUsedCodes = (): string[] => {
+  try { return JSON.parse(localStorage.getItem(USED_CODES_KEY) || "[]"); } catch { return []; }
+};
+
+const markCodeUsed = (code: string) => {
+  const used = getUsedCodes();
+  if (!used.includes(code.toUpperCase())) {
+    localStorage.setItem(USED_CODES_KEY, JSON.stringify([...used, code.toUpperCase()]));
+  }
+};
 import Icon from "@/components/ui/icon";
 
 const ADMIN_PASSWORD = "adminbegemotik2004";
@@ -50,14 +63,18 @@ export default function Index() {
     setChecking(true);
     setPromoResult(null);
     setTimeout(() => {
-      const found = codes.find(c => c.code.toUpperCase() === promoInput.toUpperCase().trim());
+      const input = promoInput.toUpperCase().trim();
+      const found = codes.find(c => c.code.toUpperCase() === input);
       if (!found) {
         setPromoResult({ success: false, message: "КОД НЕ НАЙДЕН. ДОСТУП ЗАПРЕЩЁН." });
+      } else if (getUsedCodes().includes(input)) {
+        setPromoResult({ success: false, message: "ТЫ УЖЕ ИСПОЛЬЗОВАЛ ЭТОТ КОД." });
       } else if (found.usedCount >= found.maxUses) {
         setPromoResult({ success: false, message: "ЛИМИТ АКТИВАЦИЙ ИСЧЕРПАН." });
       } else {
         const newUsed = found.usedCount + 1;
         setCodes(prev => prev.map(c => c.id === found.id ? { ...c, usedCount: newUsed } : c));
+        markCodeUsed(input);
         const left = found.maxUses - newUsed;
         setPromoResult({ success: true, message: "КОД ПРИНЯТ. РОЛЬ АКТИВИРОВАНА.", role: found.role, left });
       }
